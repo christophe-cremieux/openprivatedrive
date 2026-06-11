@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <h1 class="mb-4">Public Link Audit</h1>
+
+    <div class="card shadow">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Resource</th>
+                            <th>Type</th>
+                            <th>Link Type</th>
+                            <th>Owner</th>
+                            <th>Created At</th>
+                            <th>Expires</th>
+                            <th>Usage</th>
+                            <th>Last Access</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for link in links %}
+                        <tr>
+                            <td>
+                                <strong>{{ link.resource_name }}</strong>
+                                <div class="small text-muted">{{ link.obj.uuid }}</div>
+                            </td>
+                            <td>
+                                <span class="badge bg-secondary">{{ link.obj.resource_type }}</span>
+                            </td>
+                            <td>
+                                <span class="badge {{ 'bg-info' if link.obj.link_type == 'upload' else 'bg-primary' }}">
+                                    {{ link.obj.link_type }}
+                                </span>
+                            </td>
+                            <td>{{ link.obj.created_by.username }}</td>
+                            <td>{{ link.obj.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td>
+                                {% if link.obj.expires_at %}
+                                {{ link.obj.expires_at.strftime('%Y-%m-%d') }}
+                                {% else %}
+                                <span class="text-muted">Never</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if link.obj.link_type == 'upload' %}
+                                    {{ link.obj.upload_count }} uploads
+                                {% else %}
+                                    {{ link.obj.download_count }} downloads
+                                    {% if link.obj.max_downloads %} / {{ link.obj.max_downloads }}{% endif %}
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if link.obj.last_accessed_at %}
+                                {{ link.obj.last_accessed_at.strftime('%Y-%m-%d %H:%M') }}
+                                {% else %}
+                                <span class="text-muted">Never</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <form action="{{ url_for('admin.revoke_public_link', link_uuid=link.obj.uuid) }}" method="POST" onsubmit="return confirm('Are you sure you want to revoke this link?');">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Revoke</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

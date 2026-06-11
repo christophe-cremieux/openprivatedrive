@@ -1,0 +1,14 @@
+[Unit]
+Description=Gunicorn instance to serve Private Drive
+After=network.target
+
+[Service]
+User=private-drive
+Group=www-data
+WorkingDirectory=/opt/private-drive
+Environment="PATH=/opt/private-drive/venv/bin"
+EnvironmentFile=/opt/private-drive/.env
+ExecStart=/opt/private-drive/venv/bin/gunicorn --workers 3 --bind 127.0.0.1:8000 "app:create_app()"
+
+[Install]
+WantedBy=multi-user.target

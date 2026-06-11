@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block header %}Decrypt {{ file.original_filename }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-6 col-lg-4">
+        <div class="card border-0 shadow">
+            <div class="card-body p-4">
+                <div class="text-center mb-4">
+                    <i class="bi bi-shield-lock display-1 text-primary mb-3"></i>
+                    <h4>File is Encrypted</h4>
+                    <p class="text-muted">Enter the password to decrypt and download <strong>{{ file.original_filename }}</strong>.</p>
+                </div>
+
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                <form method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Encryption Password</label>
+                        <input type="password" name="password" id="password" class="form-control" required autofocus placeholder="Enter password">
+                    </div>
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">Decrypt & Download</button>
+                        <a href="{{ url_for('drive.dashboard') }}" class="btn btn-light">Cancel</a>
+                    </div>
+                </form>
+
+                <div class="mt-4 p-3 bg-light rounded border">
+                    <small class="text-muted d-block">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Decryption is performed on the server. Your password is never stored and is only used for this session.
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

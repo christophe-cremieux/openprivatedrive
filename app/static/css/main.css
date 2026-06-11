@@ -1,0 +1,307 @@
+body {
+    padding-top: 56px;
+    background-color: #f8f9fa;
+}
+
+.sidebar {
+    position: fixed;
+    top: 56px;
+    bottom: 0;
+    left: 0;
+    z-index: 100;
+    padding: 20px 0 0;
+    box-shadow: inset -1px 0 0 rgba(0, 0, 0, .1);
+    background-color: #fff;
+    overflow-y: auto;
+}
+
+@media (max-width: 767.98px) {
+    .sidebar {
+        position: static;
+        display: none;
+    }
+    .sidebar.show {
+        display: block;
+    }
+
+    #topNavbar.collapse.show {
+        background-color: #fff;
+        padding: 1rem;
+        border-bottom: 1px solid #dee2e6;
+        position: absolute;
+        top: 56px;
+        left: 0;
+        right: 0;
+        z-index: 1050;
+    }
+
+    #topNavbar .mx-auto.w-50 {
+        width: 100% !important;
+        margin-bottom: 1rem;
+    }
+}
+
+.sidebar .nav-link {
+    font-weight: 500;
+    color: #333;
+    padding: 0.5rem 1.5rem;
+    border-radius: 0 25px 25px 0;
+    margin-right: 10px;
+}
+
+.sidebar .nav-link:hover {
+    background-color: #f1f3f4;
+}
+
+.sidebar .nav-link.active {
+    color: #1a73e8;
+    background-color: #e8f0fe;
+}
+
+.sidebar .nav-link i {
+    margin-right: 12px;
+    font-size: 1.1rem;
+}
+
+.main-content {
+    margin-left: 240px;
+    padding: 20px;
+}
+
+@media (max-width: 767.98px) {
+    .main-content {
+        margin-left: 0;
+    }
+}
+
+.navbar-brand {
+    font-weight: 600;
+}
+
+.file-item {
+    border-radius: 8px;
+    transition: background-color 0.2s;
+}
+
+.file-item:hover {
+    background-color: #f1f3f4;
+}
+
+.dropdown-item {
+    padding: 0.5rem 1.25rem;
+    font-size: 0.9rem;
+}
+
+.dropdown-item i {
+    width: 1.2rem;
+}
+
+/* Touch targets for mobile */
+@media (max-width: 767.98px) {
+    .btn-link {
+        padding: 10px;
+    }
+
+    .file-item {
+        padding-top: 8px;
+        padding-bottom: 8px;
+    }
+
+    /* Reduce horizontal padding on mobile to maximize content width */
+    .main-content {
+        padding: 10px;
+    }
+
+    .container-fluid {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+
+    /* Ensure action buttons don't wrap awkwardly */
+    .btn-toolbar {
+        flex-wrap: nowrap;
+    }
+}
+
+.grid-view .file-card {
+    width: 200px;
+    margin: 10px;
+    text-align: center;
+    padding: 15px;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    background-color: #fff;
+}
+
+.grid-view .file-icon {
+    font-size: 3rem;
+    display: block;
+    margin-bottom: 10px;
+}
+
+.file-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.workspace-area {
+    min-height: 400px;
+    cursor: default;
+}
+
+#mobileFab {
+    transition: transform 0.2s, background-color 0.2s;
+}
+
+#mobileFab:active {
+    transform: scale(0.9);
+}
+
+#workspaceContextMenu {
+    min-width: 180px;
+}
+
+/* Grid View Improvements */
+.grid-item {
+    position: relative;
+    border-radius: 8px;
+    overflow: visible !important;
+    transition: transform 0.2s, box-shadow 0.2s;
+    background: #fff;
+    padding: 0 !important;
+}
+
+.grid-selection-checkbox {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 30;
+    width: 1.25rem !important;
+    height: 1.25rem !important;
+    cursor: pointer;
+    background-color: white !important;
+    border: 2px solid #adb5bd !important;
+}
+
+.grid-selection-checkbox:checked {
+    background-color: #0d6efd !important;
+    border-color: #0d6efd !important;
+}
+
+.grid-item:hover, .grid-item:focus-within {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+    z-index: 50; /* Ensure it stays above other items when hovered or menu is open */
+}
+
+.grid-thumbnail-wrapper {
+    position: relative;
+    width: 100%;
+    padding-top: 100%; /* 1:1 Aspect Ratio */
+    background: #f1f3f4;
+}
+
+.grid-thumbnail {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.grid-icon-placeholder {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.grid-file-info {
+    background: rgba(74, 144, 226, 0.9); /* Modern Blue with slight transparency */
+    color: white;
+    padding: 8px 12px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    z-index: 10;
+    backdrop-filter: blur(4px);
+    border-top: 1px solid rgba(255,255,255,0.1);
+}
+
+.grid-file-info .dropdown-menu {
+    z-index: 1060;
+}
+
+.grid-item .grid-thumbnail-wrapper {
+    overflow: hidden;
+    border-radius: 8px 8px 0 0;
+}
+
+.grid-download-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 20;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.grid-item:hover .grid-download-overlay {
+    opacity: 1;
+}
+
+.grid-download-btn {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.9);
+    color: #333;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    border: none;
+    transition: background 0.2s;
+}
+
+.grid-download-btn:hover {
+    background: #fff;
+    color: #000;
+}
+
+/* Fix dropdown clipping in responsive tables */
+.table-responsive {
+    overflow: visible !important;
+}
+
+body.drag-over::after {
+    content: "Drop files to upload";
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(26, 115, 232, 0.2);
+    border: 4px dashed #1a73e8;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    font-weight: bold;
+    color: #1a73e8;
+    pointer-events: none;
+}
+
+@media (max-width: 767.98px) {
+    .table-responsive {
+        overflow: visible !important;
+        overflow-x: visible !important;
+        -webkit-overflow-scrolling: touch;
+    }
+}

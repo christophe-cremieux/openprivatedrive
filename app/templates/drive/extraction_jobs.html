@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block header %}ZIP Extraction Jobs{% endblock %}
+
+{% block content %}
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>ZIP File</th>
+                        <th>Destination</th>
+                        <th>Status</th>
+                        <th>Result</th>
+                        <th>Started</th>
+                        <th>Completed</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if not jobs %}
+                    <tr>
+                        <td colspan="6" class="text-center py-5">
+                            <p class="text-muted">No extraction jobs found.</p>
+                        </td>
+                    </tr>
+                    {% endif %}
+                    {% for job in jobs %}
+                    <tr>
+                        <td>{{ job.zip_file.original_filename if job.zip_file else 'Unknown' }}</td>
+                        <td>{{ job.destination_folder.name if job.destination_folder else 'Drive' }}</td>
+                        <td>
+                            {% if job.status == 'completed' %}
+                            <span class="badge bg-success">Completed</span>
+                            {% elif job.status == 'completed_with_errors' %}
+                            <span class="badge bg-warning text-dark">Completed with errors</span>
+                            {% elif job.status == 'processing' %}
+                            <span class="badge bg-primary">Processing...</span>
+                            {% elif job.status == 'queued' %}
+                            <span class="badge bg-secondary">Queued</span>
+                            {% else %}
+                            <span class="badge bg-danger">Failed</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if job.summary_json %}
+                            <div>
+                                <small class="d-block text-muted">
+                                    {{ job.summary_json.files_created }} files,
+                                    {{ job.summary_json.folders_created }} folders
+                                    {% if job.summary_json.files_skipped > 0 %}
+                                    <br><span class="text-danger">{{ job.summary_json.files_skipped }} skipped</span>
+                                    <button class="btn btn-sm btn-link p-0 ms-1" type="button" data-bs-toggle="collapse" data-bs-target="#errors-{{ job.uuid }}" aria-expanded="false">
+                                        View Details
+                                    </button>
+                                    {% endif %}
+                                </small>
+                                <div class="collapse mt-2" id="errors-{{ job.uuid }}">
+                                    <div class="card card-body bg-light border-0 p-2 shadow-sm" style="max-height: 150px; overflow-y: auto;">
+                                        <ul class="list-unstyled mb-0" style="font-size: 0.75rem;">
+                                            {% for error in job.summary_json.errors %}
+                                            <li class="text-danger mb-1">• {{ error }}</li>
+                                            {% endfor %}
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            {% elif job.error_message %}
+                            <small class="text-danger">{{ job.error_message }}</small>
+                            {% else %}
+                            —
+                            {% endif %}
+                        </td>
+                        <td>{{ job.started_at.strftime('%H:%M:%S') if job.started_at else '—' }}</td>
+                        <td>{{ job.completed_at.strftime('%H:%M:%S') if job.completed_at else '—' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

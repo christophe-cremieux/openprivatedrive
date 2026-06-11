@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <h1 class="mb-4">System Storage Overview</h1>
+    <div class="row">
+        <div class="col-md-6 mb-4">
+            <div class="card shadow border-start border-primary border-4">
+                <div class="card-body">
+                    <h5 class="card-title text-muted">Total Storage Used</h5>
+                    <p class="display-4">{{ stats.total_usage_bytes | filesizeformat }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 mb-4">
+            <div class="card shadow border-start border-success border-4">
+                <div class="card-body">
+                    <h5 class="card-title text-muted">Total Active Files</h5>
+                    <p class="display-4">{{ stats.total_files }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="alert alert-info shadow-sm mt-3">
+        <i class="bi bi-info-circle-fill me-2"></i> This view provides a high-level summary of physical storage consumption across all user drives.
+    </div>
+</div>
+{% endblock %}

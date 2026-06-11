@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="mb-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('drive.dashboard') }}">My Drive</a></li>
+            <li class="breadcrumb-item active">Shares: {{ resource.name if resource_type == 'folder' else resource.original_filename }}</li>
+        </ol>
+    </nav>
+    <h1>Manage Access</h1>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">Add New Person</div>
+    <div class="card-body">
+        <form action="{{ url_for('drive.add_share') }}" method="POST" class="row g-3">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="resource_type" value="{{ resource_type }}">
+            <input type="hidden" name="resource_uuid" value="{{ resource.uuid }}">
+
+            <div class="col-md-6">
+                <input type="text" name="username" class="form-control user-picker" placeholder="Username" required autocomplete="off">
+            </div>
+            <div class="col-md-4">
+                <select name="permission" class="form-select">
+                    <option value="viewer">Viewer</option>
+                    <option value="editor">Editor</option>
+                    <option value="manager">Manager</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">Share</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">Who has access</div>
+    <ul class="list-group list-group-flush">
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+            <div>
+                <strong>{{ resource.owner.username }}</strong> (Owner)
+            </div>
+            <span class="badge bg-secondary">Owner</span>
+        </li>
+        {% for share in shares %}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+            <div>
+                <strong>{{ share.username }}</strong>
+                {% if share.is_inherited %}
+                <br><small class="text-muted">Inherited from {{ share.inherited_from.name }}</small>
+                {% endif %}
+            </div>
+            <div class="d-flex align-items-center">
+                <span class="badge bg-info me-3">{{ share.permission }}</span>
+                {% if not share.is_inherited %}
+                <form action="{{ url_for('drive.remove_share', share_uuid=share.uuid) }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Remove Access">
+                        <i class="bi bi-person-x"></i>
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %}

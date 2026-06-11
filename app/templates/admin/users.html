@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="mb-0">User Management</h1>
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createUserModal">
+            <i class="bi bi-person-plus me-1"></i> Create User
+        </button>
+    </div>
+
+    <!-- Create User Modal -->
+    <div class="modal fade" id="createUserModal" tabindex="-1" aria-labelledby="createUserModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content shadow-lg border-0">
+                <div class="modal-header bg-primary text-white py-3">
+                    <h5 class="modal-title" id="createUserModalLabel">Create New User Account</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="{{ url_for('admin.create_user') }}" method="POST">
+                    <div class="modal-body p-4">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="mb-3">
+                            <label for="username" class="form-label fw-bold">Username</label>
+                            <input type="text" class="form-control" id="username" name="username" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="email" class="form-label fw-bold">Email Address</label>
+                            <input type="email" class="form-control" id="email" name="email" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="password" class="form-label fw-bold">Password</label>
+                            <input type="password" class="form-control" id="password" name="password" required>
+                        </div>
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="is_admin" name="is_admin" value="true">
+                            <label class="form-check-input-label" for="is_admin">Administrator Access</label>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light p-3">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Create User</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>Admin</th>
+                            <th>Active</th>
+                            <th>Tokens</th>
+                            <th>Last Login</th>
+                            <th>Storage Usage</th>
+                            <th>Quota</th>
+                            <th>Usage %</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for stat in user_stats %}
+                        <tr>
+                            <td><strong>{{ stat.user.username }}</strong></td>
+                            <td>{{ stat.user.email }}</td>
+                            <td>
+                                {% if stat.user.is_admin %}
+                                <span class="badge bg-primary">Admin</span>
+                                {% else %}
+                                <span class="badge bg-secondary">User</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if stat.user.is_active %}
+                                <span class="text-success"><i class="bi bi-check-circle-fill"></i> Active</span>
+                                {% else %}
+                                <span class="text-danger"><i class="bi bi-x-circle-fill"></i> Inactive</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge rounded-pill bg-light text-dark border">{{ stat.active_tokens }}</span>
+                            </td>
+                            <td>
+                                {% if stat.user.last_login_at %}
+                                <small>{{ stat.user.last_login_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                                {% else %}
+                                <small class="text-muted">Never</small>
+                                {% endif %}
+                            </td>
+                            <td>{{ stat.storage_usage_bytes | filesizeformat }}</td>
+                            <td>{{ stat.storage_quota_bytes | filesizeformat }}</td>
+                            <td>
+                                <div class="progress" style="height: 10px;">
+                                    <div class="progress-bar {% if stat.usage_percent > 90 %}bg-danger{% elif stat.usage_percent > 70 %}bg-warning{% else %}bg-success{% endif %}"
+                                         role="progressbar"
+                                         style="width: {{ stat.usage_percent }}%;"
+                                         aria-valuenow="{{ stat.usage_percent }}"
+                                         aria-valuemin="0"
+                                         aria-valuemax="100"></div>
+                                </div>
+                                <small>{{ stat.usage_percent | round(1) }}%</small>
+                            </td>
+                            <td>
+                                <div class="btn-group">
+                                    <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#quotaModal{{ stat.user.uuid }}" title="Update Quota">
+                                        <i class="bi bi-hdd"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-warning" data-bs-toggle="modal" data-bs-target="#resetPasswordModal{{ stat.user.uuid }}" title="Reset Password">
+                                        <i class="bi bi-key"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#revokeTokensModal{{ stat.user.uuid }}" title="Revoke Tokens">
+                                        <i class="bi bi-slash-circle"></i>
+                                    </button>
+                                    {% if stat.user.is_active %}
+                                    <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deactivateUserModal{{ stat.user.uuid }}" title="Deactivate User">
+                                        <i class="bi bi-person-x"></i>
+                                    </button>
+                                    {% else %}
+                                    <form action="{{ url_for('admin.reactivate_user', user_uuid=stat.user.uuid) }}" method="POST" class="d-inline">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn btn-sm btn-outline-success" title="Reactivate User">
+                                            <i class="bi bi-person-check"></i>
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Revoke Tokens Modal -->
+                                <div class="modal fade" id="revokeTokensModal{{ stat.user.uuid }}" tabindex="-1">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content shadow border-0">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">Revoke Tokens for {{ stat.user.username }}</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <form action="{{ url_for('admin.revoke_user_tokens', user_uuid=stat.user.uuid) }}" method="POST">
+                                                <div class="modal-body">
+                                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                    <p>Are you sure you want to revoke all API access tokens and refresh tokens for <strong>{{ stat.user.username }}</strong>?</p>
+                                                    <p class="text-muted">This will log the user out of all mobile apps and sync clients.</p>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                                                    <button type="submit" class="btn btn-info">Revoke All Tokens</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Deactivate User Modal -->
+                                <div class="modal fade" id="deactivateUserModal{{ stat.user.uuid }}" tabindex="-1">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content shadow border-0">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">Deactivate User: {{ stat.user.username }}</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <form action="{{ url_for('admin.deactivate_user', user_uuid=stat.user.uuid) }}" method="POST">
+                                                <div class="modal-body">
+                                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                    <p>Are you sure you want to deactivate <strong>{{ stat.user.username }}</strong>?</p>
+                                                    <p class="text-danger">The user will no longer be able to log in, and all their API tokens will be revoked.</p>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                                                    <button type="submit" class="btn btn-danger">Deactivate User</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Reset Password Modal -->
+                                <div class="modal fade" id="resetPasswordModal{{ stat.user.uuid }}" tabindex="-1">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content shadow border-0">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">Reset Password for {{ stat.user.username }}</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <form action="{{ url_for('admin.create_reset_link', user_uuid=stat.user.uuid) }}" method="POST">
+                                                <div class="modal-body">
+                                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                    <p>Generate a one-time password reset link for this user? The link will expire in {{ config.PASSWORD_RESET_TOKEN_MINUTES }} minutes.</p>
+                                                    <div class="alert alert-info">
+                                                        The reset link will be shown once after you click "Generate Link".
+                                                    </div>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                                                    <button type="submit" class="btn btn-warning">Generate Link</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Quota Modal -->
+                                <div class="modal fade" id="quotaModal{{ stat.user.uuid }}" tabindex="-1">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content shadow border-0">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">Update Quota for {{ stat.user.username }}</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <form action="{{ url_for('admin.update_user_quota', user_uuid=stat.user.uuid) }}" method="POST">
+                                                <div class="modal-body">
+                                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                    <div class="mb-3">
+                                                        <label class="form-label">Quota (GB)</label>
+                                                        <input type="number" step="0.1" name="quota_gb" class="form-control" value="{{ stat.storage_quota_bytes / 1024 / 1024 / 1024 }}" required>
+                                                    </div>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                                                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

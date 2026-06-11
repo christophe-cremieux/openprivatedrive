@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Trash</h1>
+    {% if deleted_folders or deleted_files %}
+    <form action="{{ url_for('drive.empty_trash') }}" method="POST" onsubmit="return confirm('Are you sure you want to empty the trash? This cannot be undone.');">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-danger">
+            <i class="bi bi-trash"></i> Empty Trash
+        </button>
+    </form>
+    {% endif %}
+</div>
+
+{% if not deleted_folders and not deleted_files %}
+<div class="text-center py-5 mt-4">
+    <i class="bi bi-trash3 display-1 text-muted d-block mb-3"></i>
+    <p class="text-muted fs-4">Trash is empty</p>
+    <p class="text-muted">Items you delete will appear here and can be restored.</p>
+</div>
+{% else %}
+<div class="table-responsive">
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Deleted At</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for folder in deleted_folders %}
+            <tr>
+                <td>
+                    <i class="bi bi-folder text-primary me-2"></i>
+                    {{ folder.name }}
+                </td>
+                <td>{{ folder.deleted_at.strftime('%Y-%m-%d %H:%M') if folder.deleted_at else 'Unknown' }}</td>
+                <td>
+                    <div class="btn-group">
+                        <form action="{{ url_for('drive.restore_folder', folder_uuid=folder.uuid) }}" method="POST" class="d-inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-sm btn-outline-success" title="Restore">
+                                <i class="bi bi-arrow-counterclockwise"></i> Restore
+                            </button>
+                        </form>
+                        <form action="{{ url_for('drive.permanent_delete_folder', folder_uuid=folder.uuid) }}" method="POST" class="d-inline ms-1" onsubmit="return confirm('Permanently delete this folder and all its contents?');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete Permanently">
+                                <i class="bi bi-x-circle"></i>
+                            </button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+            {% for file in deleted_files %}
+            <tr>
+                <td>
+                    <i class="bi bi-file-earmark text-secondary me-2"></i>
+                    {{ file.original_filename }}
+                </td>
+                <td>{{ file.deleted_at.strftime('%Y-%m-%d %H:%M') if file.deleted_at else 'Unknown' }}</td>
+                <td>
+                    <div class="btn-group">
+                        <form action="{{ url_for('drive.restore_file', file_uuid=file.uuid) }}" method="POST" class="d-inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-sm btn-outline-success" title="Restore">
+                                <i class="bi bi-arrow-counterclockwise"></i> Restore
+                            </button>
+                        </form>
+                        <form action="{{ url_for('drive.permanent_delete_file', file_uuid=file.uuid) }}" method="POST" class="d-inline ms-1" onsubmit="return confirm('Permanently delete this file?');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete Permanently">
+                                <i class="bi bi-x-circle"></i>
+                            </button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,545 @@
+{% extends "base.html" %}
+
+{% block header %}{{ current_folder.name }}{% endblock %}
+
+{% block toolbar %}
+<div class="d-flex align-items-center me-2 pe-2 border-end">
+    <div class="form-check mb-0">
+        <input class="form-check-input" type="checkbox" id="toolbarSelectAll" title="Select all items">
+    </div>
+</div>
+<div class="btn-group me-2">
+    <button type="button" class="btn btn-sm btn-outline-secondary" id="listBtn">
+        <i class="bi bi-list-ul"></i>
+    </button>
+    <button type="button" class="btn btn-sm btn-outline-secondary" id="gridBtn">
+        <i class="bi bi-grid-3x3-gap"></i>
+    </button>
+</div>
+<button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#folderSettingsModal">
+    <i class="bi bi-gear me-1"></i> Folder Settings
+</button>
+<button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#createFolderModal">
+    <i class="bi bi-folder-plus me-1"></i> New Folder
+</button>
+{% endblock %}
+
+
+{% block content %}
+<nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb bg-light p-2 rounded">
+        {% for p in path %}
+        <li class="breadcrumb-item {% if loop.last %}active{% endif %}" {% if loop.last %}aria-current="page"{% endif %}>
+            {% if not loop.last %}
+            <a href="{{ url_for('drive.view_folder', folder_uuid=p.uuid) }}">{{ p.name }}</a>
+            {% else %}
+            {{ p.name }}
+            {% if current_folder.encrypt_new_uploads %}
+                <span class="badge rounded-pill bg-info text-white ms-2" style="font-size: 0.7rem;" data-bs-toggle="tooltip" title="New uploads to this folder are encrypted by default.">
+                    <i class="bi bi-shield-lock-fill me-1"></i>Auto-encrypt
+                </span>
+            {% endif %}
+            {% endif %}
+        </li>
+        {% endfor %}
+    </ol>
+</nav>
+
+<div id="drive-view" class="list-view workspace-area">
+    <div class="table-responsive" id="list-container">
+        <table class="table table-hover align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th scope="col" style="width: 40px;">
+                        <input type="checkbox" class="form-check-input" id="selectAll">
+                    </th>
+                    <th scope="col" style="min-width: 150px;">Name</th>
+                    <th scope="col" class="d-none d-md-table-cell">Owner</th>
+                    <th scope="col" class="d-none d-lg-table-cell">Last Modified</th>
+                    <th scope="col" class="d-none d-sm-table-cell">File Size</th>
+                    <th scope="col" class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if not items %}
+                <tr>
+                    <td colspan="6" class="text-center py-5">
+                        <i class="bi bi-folder-x display-1 text-muted d-block mb-3"></i>
+                        <p class="text-muted">This folder is empty.</p>
+                        <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#uploadFileModal">Upload files</button>
+                    </td>
+                </tr>
+                {% endif %}
+
+                {% for item in items %}
+                <tr class="file-item" data-uuid="{{ item.uuid }}" data-type="{{ item.type }}">
+                    <td>
+                        <input type="checkbox" class="form-check-input item-checkbox"
+                               data-uuid="{{ item.uuid }}" data-type="{{ item.type }}">
+                    </td>
+                    <td>
+                        <div class="d-flex align-items-center">
+                            <form action="{{ url_for('drive.toggle_star_folder', folder_uuid=item.uuid) if item.type == 'folder' else url_for('drive.toggle_star_file', file_uuid=item.uuid) }}" method="POST" class="me-2">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-link p-0 text-warning">
+                                    <i class="bi {{ 'bi-star-fill' if item.is_starred else 'bi-star' }}"></i>
+                                </button>
+                            </form>
+                            {% if item.type == 'folder' %}
+                            <i class="bi bi-folder-fill text-warning fs-4 me-3"></i>
+                            <a href="{{ url_for('drive.view_folder', folder_uuid=item.uuid) }}" class="text-dark text-decoration-none fw-medium text-truncate" style="max-width: 200px; display: inline-block;">
+                                {{ item.name }}
+                            </a>
+                            {% else %}
+                            {% if item.mime_type.startswith('image/') and item.thumbnail_status == 'ready' %}
+                            <img src="{{ url_for('drive.get_thumbnail', file_uuid=item.uuid, size='small') }}" class="rounded me-3" style="width: 32px; height: 32px; object-fit: cover;">
+                            {% else %}
+                            <i class="bi
+                                {% if item.mime_type.startswith('image/') %}bi-file-earmark-image text-success
+                                {% elif item.mime_type == 'application/pdf' %}bi-file-earmark-pdf text-danger
+                                {% elif item.mime_type == 'application/zip' or item.mime_type == 'application/x-zip-compressed' %}bi-file-earmark-zip text-primary
+                                {% elif item.mime_type.startswith('text/') %}bi-file-earmark-text text-info
+                                {% elif 'word' in item.mime_type or 'officedocument.wordprocessingml' in item.mime_type or 'oasis.opendocument.text' in item.mime_type %}bi-file-earmark-word text-primary
+                                {% elif 'excel' in item.mime_type or 'officedocument.spreadsheetml' in item.mime_type or 'oasis.opendocument.spreadsheet' in item.mime_type %}bi-file-earmark-excel text-success
+                                {% elif 'powerpoint' in item.mime_type or 'officedocument.presentationml' in item.mime_type or 'oasis.opendocument.presentation' in item.mime_type %}bi-file-earmark-slides text-danger
+                                {% elif item.mime_type.startswith('video/') %}bi-file-earmark-play text-primary
+                                {% elif item.mime_type.startswith('audio/') %}bi-file-earmark-music text-info
+                                {% else %}bi-file-earmark text-secondary
+                                {% endif %} fs-4 me-3"></i>
+                            {% endif %}
+                            <a href="{{ url_for('drive.preview_file', file_uuid=item.uuid) }}" class="text-dark text-decoration-none fw-medium text-truncate" style="max-width: 200px; display: inline-block;">{{ item.name }}</a>
+                            {% if item.type == 'file' %}
+                                {% if item.is_encrypted %}
+                                    <span class="badge rounded-pill bg-dark text-white ms-2" data-bs-toggle="tooltip" data-bs-placement="top" title="Encrypted files cannot be previewed, searched by content, or shared publicly."><i class="bi bi-lock-fill me-1"></i>Encrypted</span>
+                                {% endif %}
+                                {% if item.scan_status == 'pending' %}
+                                    <span class="badge rounded-pill bg-light text-dark border ms-2" title="Scanning for threats..."><i class="bi bi-shield-shaded me-1"></i>Scanning</span>
+                                {% elif item.scan_status == 'infected' %}
+                                    <span class="badge rounded-pill bg-danger ms-2" title="Malware detected!"><i class="bi bi-exclamation-triangle-fill me-1"></i>Blocked</span>
+                                {% elif item.scan_status == 'scan_failed' %}
+                                    <span class="badge rounded-pill bg-warning text-dark ms-2" title="Scan failed"><i class="bi bi-question-circle me-1"></i>Unverified</span>
+                                {% elif item.scan_status == 'clean' %}
+                                    <span class="badge rounded-pill bg-success ms-2" title="Clean"><i class="bi bi-shield-check me-1"></i>Clean</span>
+                                {% endif %}
+
+                                {% if item.preview_status == 'pending' %}
+                                    <span class="spinner-border spinner-border-sm text-primary ms-2" role="status" title="Generating preview..."></span>
+                                {% elif item.preview_status == 'failed' %}
+                                    <span class="badge rounded-pill bg-light text-warning border ms-2" title="Preview generation failed"><i class="bi bi-exclamation-triangle me-1"></i>No Preview</span>
+                                {% elif item.preview_status == 'ready' %}
+                                    <span class="badge rounded-pill bg-info text-white ms-2" title="Preview ready"><i class="bi bi-eye me-1"></i>Ready</span>
+                                {% endif %}
+                            {% endif %}
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td class="d-none d-md-table-cell">{{ item.owner }}</td>
+                    <td class="d-none d-lg-table-cell">{{ item.updated_at.strftime('%b %d, %Y') }}</td>
+                    <td class="d-none d-sm-table-cell">
+                        {% if item.type == 'file' %}
+                        {{ (item.size / 1024)|round(1) }} KB
+                        {% else %}
+                        —
+                        {% endif %}
+                    </td>
+                    <td class="text-end">
+                        <div class="dropdown">
+                            <button class="btn btn-link text-dark p-0" data-bs-toggle="dropdown">
+                                <i class="bi bi-three-dots-vertical"></i>
+                            </button>
+                            <ul class="dropdown-menu shadow border-0">
+                                {% if item.type == 'folder' %}
+                                <li><a class="dropdown-item" href="{{ url_for('drive.folder_shares', folder_uuid=item.uuid) }}"><i class="bi bi-person-plus me-2"></i>Share</a></li>
+                                <li><button class="dropdown-item action-public-link" data-uuid="{{ item.uuid }}" data-type="folder" data-name="{{ item.name }}"><i class="bi bi-link-45deg me-2"></i>Public Link</button></li>
+                                <li><button class="dropdown-item action-rename" data-uuid="{{ item.uuid }}" data-type="folder" data-name="{{ item.name }}"><i class="bi bi-pencil me-2"></i>Rename</button></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><button class="dropdown-item text-danger action-delete" data-uuid="{{ item.uuid }}" data-type="folder" data-name="{{ item.name }}"><i class="bi bi-trash me-2"></i>Delete</button></li>
+                                {% else %}
+                                <li><a class="dropdown-item {% if item.scan_status == 'infected' %}disabled{% endif %}" href="{{ url_for('drive.download_file', file_uuid=item.uuid) }}"><i class="bi bi-download me-2"></i>Download</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('drive.file_shares', file_uuid=item.uuid) }}"><i class="bi bi-person-plus me-2"></i>Share</a></li>
+                                {% if item.mime_type == 'application/zip' or item.mime_type == 'application/x-zip-compressed' %}
+                                <li><button class="dropdown-item action-extract-zip" data-uuid="{{ item.uuid }}" data-name="{{ item.name }}"><i class="bi bi-file-zip-fill me-2"></i>Extract ZIP</button></li>
+                                {% endif %}
+                                <li><button class="dropdown-item action-public-link" data-uuid="{{ item.uuid }}" data-type="file" data-name="{{ item.name }}" {% if item.is_encrypted %}disabled title="Public links are disabled for encrypted files"{% endif %}><i class="bi bi-link-45deg me-2"></i>Public Link</button></li>
+                                <li><button class="dropdown-item action-rename" data-uuid="{{ item.uuid }}" data-type="file" data-name="{{ item.name }}"><i class="bi bi-pencil me-2"></i>Rename</button></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><button class="dropdown-item text-danger action-delete" data-uuid="{{ item.uuid }}" data-type="file" data-name="{{ item.name }}"><i class="bi bi-trash me-2"></i>Delete</button></li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Grid View -->
+    <div id="grid-container" class="d-none">
+        <div class="row row-cols-2 row-cols-md-4 row-cols-lg-5 g-4">
+            {% for item in items %}
+            <div class="col">
+                <div class="card h-100 shadow-sm border-0 grid-item">
+                    <input type="checkbox" class="form-check-input item-checkbox grid-selection-checkbox"
+                           data-uuid="{{ item.uuid }}" data-type="{{ item.type }}">
+                    {% if item.type == 'folder' %}
+                    <div class="grid-thumbnail-wrapper">
+                        <a href="{{ url_for('drive.view_folder', folder_uuid=item.uuid) }}">
+                            <div class="grid-icon-placeholder text-warning display-3">
+                                <i class="bi bi-folder-fill"></i>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="grid-file-info d-flex align-items-center">
+                        <div class="dropdown me-2">
+                            <button class="btn btn-link text-white p-0" data-bs-toggle="dropdown">
+                                <i class="bi bi-three-dots-vertical"></i>
+                            </button>
+                            <ul class="dropdown-menu shadow border-0">
+                                <li><a class="dropdown-item" href="{{ url_for('drive.folder_shares', folder_uuid=item.uuid) }}"><i class="bi bi-person-plus me-2"></i>Share</a></li>
+                                <li><button class="dropdown-item action-public-link" data-uuid="{{ item.uuid }}" data-type="folder" data-name="{{ item.name }}"><i class="bi bi-link-45deg me-2"></i>Public Link</button></li>
+                                <li><button class="dropdown-item action-rename" data-uuid="{{ item.uuid }}" data-type="folder" data-name="{{ item.name }}"><i class="bi bi-pencil me-2"></i>Rename</button></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><button class="dropdown-item text-danger action-delete" data-uuid="{{ item.uuid }}" data-type="folder" data-name="{{ item.name }}"><i class="bi bi-trash me-2"></i>Delete</button></li>
+                            </ul>
+                        </div>
+                        <div class="text-truncate flex-grow-1">
+                            <a href="{{ url_for('drive.view_folder', folder_uuid=item.uuid) }}" class="text-decoration-none text-white">
+                                <i class="bi bi-folder-fill me-1"></i> {{ item.name }}
+                            </a>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="grid-thumbnail-wrapper">
+                        <a href="{{ url_for('drive.preview_file', file_uuid=item.uuid) }}">
+                            {% if item.thumbnail_status == 'ready' %}
+                            <img src="{{ url_for('drive.get_thumbnail', file_uuid=item.uuid, size='large') }}" class="grid-thumbnail" alt="{{ item.name }}">
+                            {% else %}
+                            <div class="grid-icon-placeholder display-3">
+                                <i class="bi
+                                    {% if item.mime_type.startswith('image/') %}bi-file-earmark-image text-success
+                                    {% elif item.mime_type == 'application/pdf' %}bi-file-earmark-pdf text-danger
+                                    {% elif item.mime_type == 'application/zip' or item.mime_type == 'application/x-zip-compressed' %}bi-file-earmark-zip text-primary
+                                    {% elif item.mime_type.startswith('text/') %}bi-file-earmark-text text-info
+                                    {% elif 'word' in item.mime_type or 'officedocument.wordprocessingml' in item.mime_type or 'oasis.opendocument.text' in item.mime_type %}bi-file-earmark-word text-primary
+                                    {% elif 'excel' in item.mime_type or 'officedocument.spreadsheetml' in item.mime_type or 'oasis.opendocument.spreadsheet' in item.mime_type %}bi-file-earmark-excel text-success
+                                    {% elif 'powerpoint' in item.mime_type or 'officedocument.presentationml' in item.mime_type or 'oasis.opendocument.presentation' in item.mime_type %}bi-file-earmark-slides text-danger
+                                    {% elif item.mime_type.startswith('video/') %}bi-file-earmark-play text-primary
+                                    {% elif item.mime_type.startswith('audio/') %}bi-file-earmark-music text-info
+                                    {% else %}bi-file-earmark text-secondary
+                                    {% endif %}"></i>
+                            </div>
+                            {% endif %}
+                        </a>
+
+                        <!-- Overlay for download -->
+                        <div class="grid-download-overlay">
+                            <a href="{{ url_for('drive.download_file', file_uuid=item.uuid) }}" class="grid-download-btn shadow-sm" title="Download">
+                                <i class="bi bi-download fs-4"></i>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="grid-file-info d-flex align-items-center">
+                        <div class="dropdown me-2">
+                            <button class="btn btn-link text-white p-0" data-bs-toggle="dropdown">
+                                <i class="bi bi-three-dots-vertical"></i>
+                            </button>
+                            <ul class="dropdown-menu shadow border-0">
+                                <li><a class="dropdown-item {% if item.scan_status == 'infected' %}disabled{% endif %}" href="{{ url_for('drive.download_file', file_uuid=item.uuid) }}"><i class="bi bi-download me-2"></i>Download</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('drive.file_shares', file_uuid=item.uuid) }}"><i class="bi bi-person-plus me-2"></i>Share</a></li>
+                                {% if item.mime_type == 'application/zip' or item.mime_type == 'application/x-zip-compressed' %}
+                                <li><button class="dropdown-item action-extract-zip" data-uuid="{{ item.uuid }}" data-name="{{ item.name }}"><i class="bi bi-file-zip-fill me-2"></i>Extract ZIP</button></li>
+                                {% endif %}
+                                <li><button class="dropdown-item action-public-link" data-uuid="{{ item.uuid }}" data-type="file" data-name="{{ item.name }}" {% if item.is_encrypted %}disabled title="Public links are disabled for encrypted files"{% endif %}><i class="bi bi-link-45deg me-2"></i>Public Link</button></li>
+                                <li><button class="dropdown-item action-rename" data-uuid="{{ item.uuid }}" data-type="file" data-name="{{ item.name }}"><i class="bi bi-pencil me-2"></i>Rename</button></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><button class="dropdown-item text-danger action-delete" data-uuid="{{ item.uuid }}" data-type="file" data-name="{{ item.name }}"><i class="bi bi-trash me-2"></i>Delete</button></li>
+                            </ul>
+                        </div>
+                        <div class="text-truncate flex-grow-1">
+                            <a href="{{ url_for('drive.preview_file', file_uuid=item.uuid) }}" class="text-decoration-none text-white">
+                                {% if item.is_encrypted %}<i class="bi bi-lock-fill me-1"></i>{% endif %}
+                                {{ item.name }}
+                            </a>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Pagination -->
+{% if pagination and pagination.pages > 1 %}
+<nav aria-label="Page navigation" class="mt-4">
+    <ul class="pagination justify-content-center">
+        <li class="page-item {{ 'disabled' if not pagination.has_prev }}">
+            <a class="page-link" href="{{ url_for('drive.view_folder', folder_uuid=current_folder.uuid, page=pagination.current_page - 1, sort=sort_by, order=order) }}">Previous</a>
+        </li>
+        {% for p in range(1, pagination.pages + 1) %}
+            <li class="page-item {{ 'active' if p == pagination.current_page }}">
+                <a class="page-link" href="{{ url_for('drive.view_folder', folder_uuid=current_folder.uuid, page=p, sort=sort_by, order=order) }}">{{ p }}</a>
+            </li>
+        {% endfor %}
+        <li class="page-item {{ 'disabled' if not pagination.has_next }}">
+            <a class="page-link" href="{{ url_for('drive.view_folder', folder_uuid=current_folder.uuid, page=pagination.current_page + 1, sort=sort_by, order=order) }}">Next</a>
+        </li>
+    </ul>
+</nav>
+{% endif %}
+<!-- Workspace Context Menu -->
+<div class="dropdown-menu shadow border-0" id="workspaceContextMenu" style="position: fixed; display: none; z-index: 2000;">
+    <button class="dropdown-item py-2" data-bs-toggle="modal" data-bs-target="#uploadFileModal">
+        <i class="bi bi-cloud-arrow-up me-2"></i> New Upload
+    </button>
+    <button class="dropdown-item py-2" data-bs-toggle="modal" data-bs-target="#createFolderModal">
+        <i class="bi bi-folder-plus me-2"></i> New Folder
+    </button>
+</div>
+
+<!-- Mobile Floating Action Button -->
+<button class="btn btn-primary rounded-circle shadow-lg d-md-none" id="mobileFab" style="position: fixed; bottom: 80px; right: 20px; width: 56px; height: 56px; z-index: 1040;">
+    <i class="bi bi-plus-lg fs-3"></i>
+</button>
+
+{% endblock %}
+
+{% block modals %}
+<!-- Bulk Actions Bar -->
+<div id="bulkActionsBar" class="fixed-bottom bg-white border-top shadow-lg p-3 d-none animate__animated animate__slideInUp" style="z-index: 1050;">
+    <div class="container d-flex justify-content-between align-items-center">
+        <div>
+            <span id="selectedCount" class="fw-bold text-primary">0</span> items selected
+        </div>
+        <div class="btn-group">
+            <button class="btn btn-outline-primary" id="bulkDownloadBtn">
+                <i class="bi bi-download me-1"></i> Download ZIP
+            </button>
+            <button class="btn btn-outline-secondary" id="bulkMoveBtn">
+                <i class="bi bi-folder2-open me-1"></i> Move
+            </button>
+            <button class="btn btn-outline-danger" id="bulkDeleteBtn">
+                <i class="bi bi-trash me-1"></i> Delete
+            </button>
+            <button class="btn btn-light ms-2" id="clearSelectionBtn">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- Move Modal -->
+<div class="modal fade" id="moveModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form id="moveForm" method="POST" action="{{ url_for('drive.bulk_move') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div id="moveItemsContainer"></div>
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title">Move items to...</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Destination Folder</label>
+                        <select name="destination_uuid" class="form-select" required>
+                            <option value="">Select a folder</option>
+                            {% if current_user_folders %}
+                                {% for f in current_user_folders %}
+                                    <option value="{{ f.uuid }}">{{ f.name }}</option>
+                                {% endfor %}
+                            {% endif %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Move Here</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Create Folder Modal -->
+<div class="modal fade" id="createFolderModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form action="{{ url_for('drive.create_folder') }}" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="parent_uuid" value="{{ current_folder.uuid }}">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title">New Folder</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="text" name="name" class="form-control" placeholder="Folder Name" required autofocus>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Upload File Modal -->
+<div class="modal fade" id="uploadFileModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog">
+        <form action="{{ url_for('drive.upload_file') }}" method="POST" enctype="multipart/form-data" id="uploadForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="folder_uuid" value="{{ current_folder.uuid }}">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title">Upload Files</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="uploadProgress" class="d-none mb-3">
+                        <div class="progress mb-2">
+                            <div id="uploadProgressBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+                        </div>
+                        <small id="uploadStatus" class="text-muted">Uploading...</small>
+                    </div>
+                    <div id="uploadFormContent">
+                    <div class="mb-3">
+                        <label class="form-label">Upload Mode</label>
+                        <div class="btn-group w-100" role="group">
+                            <input type="radio" class="btn-check" name="uploadMode" id="modeFile" checked>
+                            <label class="btn btn-outline-primary" for="modeFile">Files</label>
+                            <input type="radio" class="btn-check" name="uploadMode" id="modeDir">
+                            <label class="btn btn-outline-primary" for="modeDir">Directory</label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="fileInput" class="form-label">Select Files</label>
+                        <input class="form-control" type="file" id="fileInput" name="file" multiple required>
+                    </div>
+                    <div id="singleFileOptions">
+                        <div class="mb-3">
+                            <label for="custom_name" class="form-label">Custom Filename (Optional)</label>
+                            <input type="text" name="custom_name" id="custom_name" class="form-control">
+                        </div>
+                    </div>
+                    <div id="relativePathsContainer"></div>
+                    <hr>
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="encryptCheck" name="is_encrypted" value="true"
+                                {% if current_folder.encrypt_new_uploads %}checked disabled title="This folder requires encryption for new uploads"{% endif %}>
+                            <label class="form-check-label fw-bold" for="encryptCheck">
+                                <i class="bi bi-shield-lock me-1"></i> Encrypt this file
+                            </label>
+                        </div>
+                        {% if current_folder.encrypt_new_uploads %}
+                            <input type="hidden" name="is_encrypted" value="true">
+                            <div class="alert alert-info small py-1 mt-1 mb-0">
+                                <i class="bi bi-info-circle me-1"></i> This folder requires encryption for new uploads.
+                            </div>
+                        {% endif %}
+                        <small class="text-muted">Use this for sensitive files. If you lose the password, the file cannot be recovered.</small>
+                    </div>
+                    <div id="encryptionFields" style="display: none;">
+                        <div class="alert alert-warning small py-2 mb-3">
+                            <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                            <strong>Important:</strong> Encrypted file passwords <u>cannot be recovered</u>.
+                            Encrypted files cannot be previewed, searched by content, or shared publicly.
+                        </div>
+                        <div class="mb-3">
+                            <label for="enc_password" class="form-label">Encryption Password</label>
+                            <input type="password" name="password" id="enc_password" class="form-control" placeholder="Minimum 12 characters">
+                        </div>
+                        <div class="mb-3">
+                            <label for="enc_password_confirm" class="form-label">Confirm Password</label>
+                            <input type="password" id="enc_password_confirm" class="form-control" placeholder="Re-enter password">
+                        </div>
+                    </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal" id="cancelUploadBtn">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="startUploadBtn">Start Upload</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Extract ZIP Modal -->
+<div class="modal fade" id="extractZipModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form id="extractZipForm" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title">Extract ZIP: <span id="extractZipName"></span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="extractIntoNamedFolder" name="extract_into_named_folder" value="true" checked>
+                            <label class="form-check-label fw-bold" for="extractIntoNamedFolder">
+                                Extract into new folder named after ZIP
+                            </label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Destination Folder</label>
+                        <select name="destination_uuid" class="form-select">
+                            <option value="{{ current_folder.uuid }}">Current Folder ({{ current_folder.name }})</option>
+                            {% if current_user_folders %}
+                                {% for f in current_user_folders %}
+                                    {% if f.uuid != current_folder.uuid %}
+                                    <option value="{{ f.uuid }}">{{ f.name }}</option>
+                                    {% endif %}
+                                {% endfor %}
+                            {% endif %}
+                        </select>
+                    </div>
+                    <div class="alert alert-info small py-2 mb-0">
+                        <i class="bi bi-info-circle me-1"></i> Extraction runs in the background. Files will be validated using normal upload rules.
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Extract</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Folder Settings Modal -->
+<div class="modal fade" id="folderSettingsModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form action="{{ url_for('drive.update_folder_policy', folder_uuid=current_folder.uuid) }}" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title">Folder Settings: {{ current_folder.name }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="encryptNewUploadsCheck" name="encrypt_new_uploads" value="true" {% if current_folder.encrypt_new_uploads %}checked{% endif %}>
+                            <label class="form-check-label fw-bold" for="encryptNewUploadsCheck">
+                                <i class="bi bi-shield-lock me-1"></i> Encrypt new uploads by default
+                            </label>
+                        </div>
+                        <small class="text-muted">When enabled, any file uploaded to this folder will be encrypted by default (requires password). This does not affect existing files.</small>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}

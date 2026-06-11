@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+
+{% block header %}Admin - Storage Cleanup{% endblock %}
+
+{% block toolbar %}
+<form action="{{ url_for('admin.run_cleanup') }}" method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" class="btn btn-sm btn-primary">
+        <i class="bi bi-trash3 me-1"></i> Run Cleanup Now
+    </button>
+</form>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body p-4">
+                <h5 class="card-title mb-4">Last Cleanup Status</h5>
+
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between align-items-center border-0 px-0">
+                        <span>Last Run</span>
+                        <span class="text-muted fw-medium">{{ stats.last_run }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center border-0 px-0">
+                        <span>Expired Sessions Cleaned</span>
+                        <span class="badge bg-primary rounded-pill">{{ stats.expired_sessions_cleaned }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center border-0 px-0">
+                        <span>Temp Files Cleaned</span>
+                        <span class="badge bg-info rounded-pill">{{ stats.temp_files_cleaned }}</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    {% if stats.errors %}
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm mb-4 border-start border-danger border-4">
+            <div class="card-body p-4">
+                <h5 class="card-title text-danger mb-4"><i class="bi bi-exclamation-octagon me-2"></i>Recent Errors</h5>
+                <ul class="list-group list-group-flush small">
+                    {% for error in stats.errors %}
+                    <li class="list-group-item bg-transparent text-danger px-0">{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body p-4">
+        <h6 class="fw-bold mb-3">About Storage Cleanup</h6>
+        <p class="text-muted small">
+            The cleanup job performs the following actions:
+        </p>
+        <ul class="text-muted small mb-3">
+            <li>Removes **Expired Upload Sessions** (older than 24 hours) and their chunk data.</li>
+            <li>Deletes **Orphaned Temporary Decrypted Files** (older than 1 hour) left behind during interrupted downloads.</li>
+            <li>Note: Thumbnails and Previews are currently managed via the permanent delete flow, but automated orphan scanning is planned for a future update.</li>
+        </ul>
+    </div>
+</div>
+
+<div class="card border-danger shadow-sm mb-4">
+    <div class="card-header bg-danger text-white">
+        <h6 class="mb-0"><i class="bi bi-exclamation-triangle-fill me-2"></i>Danger Zone - Factory Reset</h6>
+    </div>
+    <div class="card-body p-4">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h6 class="fw-bold">System Data Reset</h6>
+                <p class="text-muted small mb-0">Deletes all files, folders, shares, and activity logs. User accounts are preserved.</p>
+            </div>
+            <div class="col-md-4 text-end">
+                <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#resetDataModal">
+                    Reset All Data
+                </button>
+            </div>
+        </div>
+        <hr class="my-4">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h6 class="fw-bold text-danger">Full Factory Reset</h6>
+                <p class="text-muted small mb-0">Wipes the entire system including all user accounts (except yours). This action cannot be undone.</p>
+            </div>
+            <div class="col-md-4 text-end">
+                <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#resetFullModal">
+                    Full Reset
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Reset Data Modal -->
+<div class="modal fade" id="resetDataModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <form action="{{ url_for('admin.reset_system') }}" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="mode" value="data_only">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirm Data Reset</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to delete **all files, folders, and shared links**?</p>
+                    <p class="text-muted small">User accounts will remain active, but all their stored content will be permanently deleted.</p>
+                    <div class="mb-3">
+                        <label class="form-label">Type <strong>RESET</strong> to confirm:</label>
+                        <input type="text" name="confirmation" class="form-control" placeholder="RESET" required autocomplete="off">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">Confirm Reset</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Reset Full Modal -->
+<div class="modal fade" id="resetFullModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <form action="{{ url_for('admin.reset_system') }}" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="mode" value="full">
+            <div class="modal-content border-danger">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title">Full Factory Reset</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        <strong>CRITICAL WARNING:</strong> This will delete every file and every user account on this server. Only your account will survive.
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Type <strong>RESET</strong> to confirm:</label>
+                        <input type="text" name="confirmation" class="form-control" placeholder="RESET" required autocomplete="off">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">Wipe Everything</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="mb-4">
+    <h1>Public Links</h1>
+    <p class="text-muted">Manage your links for external access and contributions.</p>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Resource</th>
+                        <th>Type</th>
+                        <th>Access</th>
+                        <th>Usage</th>
+                        <th>Expires</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if not links %}
+                    <tr>
+                        <td colspan="6" class="text-center py-5">
+                            <i class="bi bi-link-45deg display-4 text-muted d-block mb-2"></i>
+                            <p class="text-muted mb-0">No active public links found.</p>
+                        </td>
+                    </tr>
+                    {% endif %}
+                    {% for link in links %}
+                    <tr>
+                        <td>
+                            <i class="bi {{ 'bi-folder-fill text-warning' if link.obj.resource_type == 'folder' else 'bi-file-earmark-text text-primary' }} me-2"></i>
+                            {{ link.resource_name }}
+                        </td>
+                        <td>
+                            <span class="badge {{ 'bg-success' if link.obj.link_type == 'upload' else 'bg-info' }}">
+                                {{ link.obj.link_type | capitalize }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if link.obj.password_required %}
+                            <i class="bi bi-lock-fill text-muted" title="Password Protected"></i>
+                            {% else %}
+                            <i class="bi bi-unlock text-muted" title="Open Access"></i>
+                            {% endif %}
+                            {% if link.obj.one_time_password %}
+                            <span class="badge bg-warning text-dark ms-1">One-time</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ link.obj.download_count }}{% if link.obj.max_downloads %}/{{ link.obj.max_downloads }}{% endif %}</td>
+                        <td>
+                            {% if link.obj.expires_at %}
+                            {{ link.obj.expires_at.strftime('%Y-%m-%d') }}
+                            {% else %}
+                            <span class="text-muted">Never</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <button class="btn btn-sm btn-outline-primary action-copy-link"
+                                    data-url="{{ url_for('public_links.view_upload_link', token=link.obj.uuid) if link.obj.link_type == 'upload' else url_for('public_links.view_link', token=link.obj.uuid) }}"
+                                    title="Copy Link">
+                                <i class="bi bi-clipboard me-1"></i> Copy
+                            </button>
+                            <form action="{{ url_for('public_links.delete_link', link_uuid=link.obj.uuid) }}" method="POST" class="d-inline">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-sm btn-outline-danger confirm-action" data-confirm="Revoke this public link?">
+                                    Revoke
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

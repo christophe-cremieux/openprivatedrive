@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="mb-1">Upload Policy</h1>
+            <p class="text-muted mb-0">Control which file extensions users can upload.</p>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-7">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white py-3 border-0">
+                    <h5 class="card-title mb-0"><i class="bi bi-file-earmark-check me-2 text-primary"></i>Extension Rules</h5>
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('admin.update_upload_policy') }}" method="POST">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                        <div class="mb-4">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" role="switch" id="uploadPolicyEnabled" name="upload_policy_enabled" {% if policy.enabled %}checked{% endif %}>
+                                <label class="form-check-label fw-semibold" for="uploadPolicyEnabled">Enable upload extension policy</label>
+                            </div>
+                            <div class="form-text">When disabled, uploads are not limited to the allowed extension list. Security-blocked executable and script extensions stay blocked.</div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="customAllowed" class="form-label fw-semibold">Extra allowed extensions</label>
+                            <textarea class="form-control font-monospace" id="customAllowed" name="custom_allowed" rows="4" placeholder="webp, heic, md">{{ policy.custom_allowed | join(', ') }}</textarea>
+                            <div class="form-text">Use comma, space, or line separated values. Do not include executable/script types.</div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="customBlocked" class="form-label fw-semibold">Extra blocked extensions</label>
+                            <textarea class="form-control font-monospace" id="customBlocked" name="custom_blocked" rows="4" placeholder="psm1, reg, apk">{{ policy.custom_blocked | join(', ') }}</textarea>
+                            <div class="form-text">Blocked extensions always win, even if they appear in the allowed list.</div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="maxUploadSize" class="form-label fw-semibold">Global Max Upload Size (MB)</label>
+                            <input type="number" class="form-control" id="maxUploadSize" name="max_upload_size_mb" value="{{ max_upload_size or (config.MAX_CONTENT_LENGTH / 1024 / 1024) | int }}">
+                            <div class="form-text">This limit applies to all users. Set to 0 to use the server default ({{ (config.MAX_CONTENT_LENGTH / 1024 / 1024) | int }} MB).</div>
+                        </div>
+
+                        <div class="mb-4">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" role="switch" id="antivirusEnabled" name="antivirus_enabled" {% if antivirus_enabled %}checked{% endif %}>
+                                <label class="form-check-label fw-semibold" for="antivirusEnabled">Enable ClamAV antivirus scanning</label>
+                            </div>
+                            <div class="form-text">When enabled, background file processing connects to the configured ClamAV daemon and quarantines infected files.</div>
+                        </div>
+
+                        <div class="mb-4">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" role="switch" id="antivirusStrictMode" name="antivirus_strict_mode" {% if antivirus_strict_mode %}checked{% endif %}>
+                                <label class="form-check-label fw-semibold" for="antivirusStrictMode">Strict Mode (Fail-closed)</label>
+                            </div>
+                            <div class="form-text">Block download and preview for files with "pending" or "failed" scan status.</div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-save me-1"></i> Save Policy
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-5">
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-white py-3 border-0">
+                    <h5 class="card-title mb-0"><i class="bi bi-shield-check me-2 text-success"></i>Currently Allowed</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex flex-wrap gap-2">
+                        {% for ext in policy.allowed %}
+                            <span class="badge rounded-pill bg-success-subtle text-success border border-success-subtle">.{{ ext }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white py-3 border-0">
+                    <h5 class="card-title mb-0"><i class="bi bi-shield-x me-2 text-danger"></i>Blocked</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex flex-wrap gap-2">
+                        {% for ext in policy.blocked %}
+                            <span class="badge rounded-pill bg-danger-subtle text-danger border border-danger-subtle">.{{ ext }}</span>
+                        {% endfor %}
+                    </div>
+                    <p class="small text-muted mt-3 mb-0">Keep executable, script, installer, shortcut, and active-content formats blocked.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block header %}Storage Usage{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card border-0 shadow-sm rounded-3 overflow-hidden mb-4">
+            <div class="card-body p-4">
+                <h5 class="card-title mb-4">Your Storage Overview</h5>
+
+                <div class="d-flex justify-content-between align-items-end mb-2">
+                    <div>
+                        <span class="display-5 fw-bold">{{ (stats.usage_bytes / (1024*1024))|round(1) }}</span>
+                        <span class="text-muted">MB used</span>
+                    </div>
+                    <div class="text-end">
+                        <span class="fw-medium">{{ (stats.quota_bytes / (1024*1024*1024))|round(0) }} GB</span>
+                        <span class="text-muted d-block small">Total Limit</span>
+                    </div>
+                </div>
+
+                <div class="progress mb-3" style="height: 12px;">
+                    <div class="progress-bar {% if stats.usage_percent > 90 %}bg-danger{% elif stats.usage_percent > 70 %}bg-warning{% else %}bg-primary{% endif %}"
+                         role="progressbar"
+                         style="width: {{ stats.usage_percent }}%"
+                         aria-valuenow="{{ stats.usage_percent }}"
+                         aria-valuemin="0"
+                         aria-valuemax="100"></div>
+                </div>
+
+                <p class="text-muted small">
+                    You have used {{ stats.usage_percent|round(1) }}% of your total storage quota.
+                </p>
+
+                <hr class="my-4">
+
+                <h6>About your storage</h6>
+                <ul class="text-muted small">
+                    <li>Storage includes all files in your drive and shared items you own.</li>
+                    <li>Files in the trash still count towards your storage until permanently deleted.</li>
+                    <li>Encrypted files include a small overhead for security metadata.</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="text-center">
+            <a href="{{ url_for('drive.dashboard') }}" class="btn btn-outline-primary rounded-pill">
+                <i class="bi bi-arrow-left me-2"></i>Back to My Drive
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

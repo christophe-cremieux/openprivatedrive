@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-lg border-0">
+                <div class="card-header bg-warning text-dark py-3">
+                    <h4 class="mb-0 text-center"><i class="bi bi-key-fill me-2"></i>Password Reset Link Generated</h4>
+                </div>
+                <div class="card-body p-5">
+                    <p class="lead text-center mb-4">
+                        A one-time password reset link has been created for <strong>{{ target_username }}</strong>.
+                    </p>
+
+                    <div class="alert alert-info border-0 shadow-sm mb-4">
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="bi bi-info-circle-fill fs-4 me-2"></i>
+                            <strong>Important Security Note:</strong>
+                        </div>
+                        <p class="mb-0">
+                            This link is only shown <strong>once</strong> and will expire in {{ config.PASSWORD_RESET_TOKEN_MINUTES }} minutes.
+                            Copy it now and provide it to the user securely.
+                        </p>
+                    </div>
+
+                    <div class="input-group mb-4">
+                        <input type="text" id="resetLinkInput" class="form-control form-control-lg bg-light font-mono" value="{{ reset_url }}" readonly>
+                        <button class="btn btn-primary px-4" type="button" onclick="copyResetLink()">
+                            <i class="bi bi-clipboard me-1"></i> Copy
+                        </button>
+                    </div>
+
+                    <div class="text-center mt-4">
+                        <a href="{{ url_for('admin.users') }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left me-1"></i> Back to User Management
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function copyResetLink() {
+    var copyText = document.getElementById("resetLinkInput");
+    copyText.select();
+    copyText.setSelectionRange(0, 99999); // For mobile devices
+    navigator.clipboard.writeText(copyText.value).then(() => {
+        if (window.showToast) {
+            window.showToast("Reset link copied to clipboard!", "success");
+        } else {
+            alert("Reset link copied to clipboard!");
+        }
+    });
+}
+</script>
+
+<style>
+.font-mono {
+    font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 0.9rem;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+
+{% block header %}{{ file.original_filename }}{% endblock %}
+
+{% block toolbar %}
+<div class="btn-group me-2">
+    <a href="{{ url_for('drive.view_folder', folder_uuid=file.folder.uuid) if file.folder else url_for('drive.dashboard') }}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i> Back
+    </a>
+    <a href="{{ url_for('drive.download_file', file_uuid=file.uuid) }}" class="btn btn-sm btn-primary">
+        <i class="bi bi-download me-1"></i> Download
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb bg-light p-2 rounded">
+        {% for p in path %}
+        <li class="breadcrumb-item">
+            <a href="{{ url_for('drive.view_folder', folder_uuid=p.uuid) }}">{{ p.name }}</a>
+        </li>
+        {% endfor %}
+        <li class="breadcrumb-item active" aria-current="page">{{ file.original_filename }}</li>
+    </ol>
+</nav>
+
+<div class="row">
+    <div class="col-lg-9">
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body p-0 overflow-hidden d-flex align-items-center justify-content-center bg-light" style="min-height: 500px; max-height: 800px;">
+                {% if preview_type == 'image' %}
+                    <img src="{{ url_for('drive.raw_preview', file_uuid=file.uuid) }}" class="img-fluid" alt="{{ file.original_filename }}" style="max-height: 800px;">
+                {% elif preview_type == 'pdf' %}
+                    <iframe src="{{ url_for('drive.raw_preview', file_uuid=file.uuid) }}" width="100%" height="800px" style="border: none;"></iframe>
+                {% elif preview_type == 'video' %}
+                    <video controls width="100%" height="auto" style="max-height: 800px;" preload="metadata">
+                        <source src="{{ url_for('drive.raw_preview', file_uuid=file.uuid) }}" type="{{ file.mime_type }}">
+                        Your browser does not support the video tag.
+                    </video>
+                {% elif preview_type == 'audio' %}
+                    <div class="text-center w-100 p-5">
+                        <i class="bi bi-music-note-beamed display-1 text-primary mb-4 d-block"></i>
+                        <audio controls class="w-75" preload="metadata">
+                            <source src="{{ url_for('drive.raw_preview', file_uuid=file.uuid) }}" type="{{ file.mime_type }}">
+                            Your browser does not support the audio element.
+                        </audio>
+                    </div>
+                {% elif preview_type == 'text' or preview_type == 'csv' %}
+                    <div class="w-100 p-0 bg-white overflow-auto position-relative" style="max-height: 800px;">
+                        {% if is_truncated %}
+                        <div class="alert alert-warning m-2 py-2 px-3 small d-flex align-items-center" style="position: absolute; top: 0; left: 0; z-index: 10; opacity: 0.9;">
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                            File is too large for full preview. Showing first 100KB.
+                        </div>
+                        {% endif %}
+                        <button class="btn btn-sm btn-outline-secondary position-absolute top-0 end-0 m-2" style="z-index: 10;" onclick="copyToClipboard()">
+                            <i class="bi bi-copy me-1"></i> Copy
+                        </button>
+                        {% set lang_class = "language-" + file.extension if file.extension else "language-none" %}
+                        {% if file.extension == 'js' or file.extension == 'mjs' %}{% set lang_class = "language-javascript" %}{% endif %}
+                        {% if file.extension == 'py' %}{% set lang_class = "language-python" %}{% endif %}
+                        {% if file.extension == 'md' %}{% set lang_class = "language-markdown" %}{% endif %}
+                        {% if file.extension == 'sh' %}{% set lang_class = "language-bash" %}{% endif %}
+                        {% if file.extension == 'yml' or file.extension == 'yaml' %}{% set lang_class = "language-yaml" %}{% endif %}
+                        <pre class="line-numbers mb-0 m-0 p-0" style="background: white;"><code class="{{ lang_class }}">{{ text_content }}</code></pre>
+                    </div>
+                {% elif preview_type == 'office_pdf' %}
+                    <iframe src="{{ url_for('drive.get_office_preview', file_uuid=file.uuid) }}" width="100%" height="800px" style="border: none;"></iframe>
+                {% elif preview_type == 'office_pending' %}
+                    <div class="text-center p-5" id="office-pending-indicator">
+                        <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="lead text-muted">Preview is being generated...</p>
+                        <p class="small text-muted">This may take a few seconds for large documents.</p>
+                    </div>
+                {% elif preview_type == 'office_failed' %}
+                    <div class="text-center p-5">
+                        <i class="bi bi-exclamation-triangle display-1 text-warning mb-3 d-block"></i>
+                        <p class="lead text-muted">Preview could not be generated for this document.</p>
+                        <a href="{{ url_for('drive.download_file', file_uuid=file.uuid) }}" class="btn btn-primary">Download to view</a>
+                    </div>
+                {% elif preview_type == 'encrypted' %}
+                    <div class="text-center p-5">
+                        <i class="bi bi-shield-lock display-1 text-primary mb-3 d-block"></i>
+                        <p class="lead text-muted">This file is encrypted.</p>
+                        <p class="small text-muted mb-4">Preview and content search are disabled for security. Enter your password to download the original file.</p>
+                        <a href="{{ url_for('drive.decrypt_file', file_uuid=file.uuid) }}" class="btn btn-primary">
+                            <i class="bi bi-unlock me-1"></i> Decrypt & Download
+                        </a>
+                    </div>
+                {% else %}
+                    <div class="text-center p-5">
+                        <i class="bi bi-file-earmark-lock display-1 text-muted mb-3 d-block"></i>
+                        <p class="lead text-muted">Preview not available for this file type.</p>
+                        <a href="{{ url_for('drive.download_file', file_uuid=file.uuid) }}" class="btn btn-primary">Download to view</a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3">
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white border-0 py-3">
+                <h5 class="mb-0">File Details</h5>
+            </div>
+            <div class="card-body">
+                {% if file.is_encrypted %}
+                <div class="mb-3">
+                    <label class="text-muted small d-block">Security</label>
+                    <span class="badge bg-dark"><i class="bi bi-lock-fill me-1"></i> Encrypted</span>
+                </div>
+                {% endif %}
+                <div class="mb-3">
+                    <label class="text-muted small d-block">Type</label>
+                    <span>{{ file.mime_type }}</span>
+                </div>
+                <div class="mb-3">
+                    <label class="text-muted small d-block">Size</label>
+                    <span>{{ (file.size_bytes / 1024 / 1024)|round(2) }} MB ({{ file.size_bytes }} bytes)</span>
+                </div>
+                <div class="mb-3">
+                    <label class="text-muted small d-block">Owner</label>
+                    <span>{{ file.owner.username }}</span>
+                </div>
+                <div class="mb-3">
+                    <label class="text-muted small d-block">Uploaded</label>
+                    <span>{{ file.created_at.strftime('%b %d, %Y %H:%M') }}</span>
+                </div>
+                <div class="mb-3">
+                    <label class="text-muted small d-block">Last Modified</label>
+                    <span>{{ file.updated_at.strftime('%b %d, %Y %H:%M') }}</span>
+                </div>
+                <div class="mb-3">
+                    <label class="text-muted small d-block">SHA256 Hash</label>
+                    <code class="small text-break">{{ file.sha256_hash }}</code>
+                </div>
+                <div class="mb-0">
+                    <label class="text-muted small d-block">Scan Status</label>
+                    {% if file.scan_status == 'clean' %}
+                        <span class="badge bg-success"><i class="bi bi-shield-check me-1"></i> Clean</span>
+                    {% elif file.scan_status == 'infected' %}
+                        <span class="badge bg-danger"><i class="bi bi-exclamation-triangle me-1"></i> Infected</span>
+                    {% elif file.scan_status == 'pending' %}
+                        <span class="badge bg-info"><i class="bi bi-shield-shaded me-1"></i> Scanning...</span>
+                    {% else %}
+                        <span class="badge bg-secondary">Unverified</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="d-grid gap-2">
+            <a href="{{ url_for('drive.file_shares', file_uuid=file.uuid) }}" class="btn btn-outline-secondary">
+                <i class="bi bi-person-plus me-2"></i> Manage Sharing
+            </a>
+            <button type="button" class="btn btn-outline-secondary action-public-link" data-uuid="{{ file.uuid }}" data-type="file" data-name="{{ file.original_filename }}">
+                <i class="bi bi-link-45deg me-2"></i> Public Link
+            </button>
+            <button type="button" class="btn btn-outline-secondary action-rename" data-uuid="{{ file.uuid }}" data-type="file" data-name="{{ file.original_filename }}">
+                <i class="bi bi-pencil me-2"></i> Rename
+            </button>
+            <button type="button" class="btn btn-outline-danger action-delete" data-uuid="{{ file.uuid }}" data-type="file" data-name="{{ file.original_filename }}">
+                <i class="bi bi-trash me-2"></i> Delete
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function copyToClipboard() {
+    const code = document.querySelector('pre code').innerText;
+    navigator.clipboard.writeText(code).then(() => {
+        showToast('Copied to clipboard', 'success');
+    }).catch(err => {
+        showToast('Failed to copy', 'danger');
+    });
+}
+</script>
+{% endblock %}
