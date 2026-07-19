@@ -1,4 +1,4 @@
-✦ OpenPrivateDrive: Full Application Documentation - by Christophe CREMIEUX
+✦ Private-Drive: Full Application Documentation
 
   This document provides a comprehensive overview of the Private-Drive application's functionality. It is designed to serve as a guide for step-by-step usage
   and presentation videos.

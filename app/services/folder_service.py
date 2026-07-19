@@ -458,6 +458,9 @@ class FolderService:
         if date_to:
             filters.append(Folder.created_at <= date_to)
 
+        if owner_username:
+            filters.append(Folder.owner.has(db.func.lower(User.username) == owner_username.lower()))
+
         # Base query for folders owned by user
         owned_query = Folder.query.filter(Folder.owner_id == user.id, *filters)
 
@@ -476,18 +479,15 @@ class FolderService:
         all_accessible_folder_ids = set(shared_folder_ids) | set(inherited_folder_ids)
         shared_query = Folder.query.filter(Folder.id.in_(all_accessible_folder_ids), *filters)
 
-        all_folders = owned_query.union(shared_query).all()
+        union_query = owned_query.union(shared_query)
 
-        if owner_username:
-            all_folders = [f for f in all_folders if f.owner.username.lower() == owner_username.lower()]
+        union_query = union_query.order_by(Folder.created_at.desc())
 
         # Pagination
         if page:
-            start = (page - 1) * per_page
-            end = start + per_page
-            return all_folders[start:end]
+            union_query = union_query.limit(per_page).offset((page - 1) * per_page)
 
-        return all_folders
+        return union_query.all()
 
     @staticmethod
     def toggle_star(user, folder):
@@ -522,16 +522,13 @@ class FolderService:
 
     @staticmethod
     def _get_all_descendant_ids(folder_id):
-        """Iteratively finds all descendant folder IDs."""
-        descendant_ids = []
-        stack = [folder_id]
-        while stack:
-            curr_id = stack.pop()
-            children = db.session.query(Folder.id).filter(Folder.parent_id == curr_id).all()
-            child_ids = [c[0] for c in children]
-            descendant_ids.extend(child_ids)
-            stack.extend(child_ids)
-        return descendant_ids
+        """Finds all descendant folder IDs in a single query using a recursive CTE."""
+        cte = db.session.query(Folder.id).filter(Folder.parent_id == folder_id).cte(name="folder_cte", recursive=True)
+        cte = cte.union_all(
+            db.session.query(Folder.id).filter(Folder.parent_id == cte.c.id)
+        )
+        results = db.session.query(cte.c.id).all()
+        return [r[0] for r in results]
 
     @staticmethod
     def delete_folder(user, folder_uuid, permanent=False):

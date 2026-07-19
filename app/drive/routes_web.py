@@ -1089,7 +1089,7 @@ def get_thumbnail(file_uuid, size):
             full_thumb_path = storage_service.get_full_path(rel_thumb_path)
 
             if os.path.exists(full_thumb_path):
-                response = send_file(full_thumb_path, mimetype='image/webp')
+                response = send_file(full_thumb_path, mimetype='image/webp', max_age=31536000)
                 response.headers['X-Content-Type-Options'] = 'nosniff'
                 return response
 

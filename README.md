@@ -1,4 +1,4 @@
-# OpenPrivate-Drive Flask Application by Christophe CREMIEUX
+# Private-Drive Flask Application
 
 ## Project Goal
 A private self-hosted document library application designed for secure file storage and management. It provides both a web interface and an API for Android integration, ensuring that all file operations are governed by a centralized permission engine.

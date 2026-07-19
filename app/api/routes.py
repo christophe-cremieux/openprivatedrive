@@ -885,7 +885,7 @@ def api_get_thumbnail(file_uuid):
             full_thumb_path = storage_service.get_full_path(rel_thumb_path)
 
             if os.path.exists(full_thumb_path):
-                response = send_file(full_thumb_path, mimetype='image/webp')
+                response = send_file(full_thumb_path, mimetype='image/webp', max_age=31536000)
                 response.headers['X-Content-Type-Options'] = 'nosniff'
                 return response
 
@@ -1340,7 +1340,12 @@ def api_search():
 
     # Fetch all for combined ranking and pagination
     all_files = file_service.search_files(g.current_user, query, mime_type, owner_username, is_starred, date_from, date_to)
-    all_folders = folder_service.search_folders(g.current_user, query, owner_username, is_starred, date_from, date_to)
+    
+    # If mime_type is specified and it's not 'folder', we should probably skip folders
+    if mime_type and 'folder' not in mime_type.lower():
+        all_folders = []
+    else:
+        all_folders = folder_service.search_folders(g.current_user, query, owner_username, is_starred, date_from, date_to)
 
     combined = []
     for f in all_folders:

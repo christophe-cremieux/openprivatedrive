@@ -1,8 +1,97 @@
-body {
-    padding-top: 56px;
-    background-color: #f8f9fa;
+:root {
+  /* Default: Light Theme */
+  --bg-primary: #f8fafc;
+  --bg-sidebar: rgba(255, 255, 255, 0.75);
+  --bg-navbar: rgba(255, 255, 255, 0.75);
+  --bg-card: rgba(255, 255, 255, 0.8);
+  --border-color: rgba(0, 0, 0, 0.08);
+  --text-primary: #0f172a;
+  --text-secondary: #64748b;
+  --accent-primary: #6366f1;
+  --accent-hover: #4f46e5;
+  --accent-bg: rgba(99, 102, 241, 0.08);
+  --accent-border: rgba(99, 102, 241, 0.15);
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
+  --glass-blur: blur(12px) saturate(190%);
+  
+  /* Bootstrap overrides */
+  --bs-body-color: var(--text-primary);
+  --bs-body-bg: var(--bg-primary);
+  --bs-secondary-color: var(--text-secondary);
+  --bs-secondary-rgb: 100, 116, 139;
 }
 
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-primary: #0b0f19;
+    --bg-sidebar: rgba(17, 24, 39, 0.7);
+    --bg-navbar: rgba(11, 15, 25, 0.7);
+    --bg-card: rgba(22, 30, 49, 0.65);
+    --border-color: rgba(255, 255, 255, 0.06);
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --accent-primary: #818cf8;
+    --accent-hover: #6366f1;
+    --accent-bg: rgba(129, 140, 248, 0.12);
+    --accent-border: rgba(129, 140, 248, 0.25);
+    --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 1px 2px -1px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -4px rgba(0, 0, 0, 0.4);
+    
+    /* Bootstrap overrides for dark mode */
+    --bs-secondary-rgb: 148, 163, 184;
+  }
+}
+
+html {
+    scrollbar-color: var(--border-color) var(--bg-primary);
+}
+
+@supports not (scrollbar-color: auto) {
+  html::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  html::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 4px;
+  }
+  html::-webkit-scrollbar-track {
+    background: var(--bg-primary);
+  }
+}
+
+body {
+    padding-top: 56px;
+    background-color: var(--bg-primary) !important;
+    color: var(--text-primary);
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Glassmorphism overrides for Navbar */
+.navbar {
+    background-color: var(--bg-navbar) !important;
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border-bottom: 1px solid var(--border-color) !important;
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.navbar-brand, .navbar-brand i {
+    color: var(--text-primary) !important;
+}
+
+.navbar-nav .nav-link {
+    color: var(--text-secondary) !important;
+}
+
+.navbar-nav .nav-link:hover {
+    color: var(--text-primary) !important;
+}
+
+/* Sidebar Styling */
 .sidebar {
     position: fixed;
     top: 56px;
@@ -10,9 +99,13 @@ body {
     left: 0;
     z-index: 100;
     padding: 20px 0 0;
-    box-shadow: inset -1px 0 0 rgba(0, 0, 0, .1);
-    background-color: #fff;
+    box-shadow: var(--shadow-sm) !important;
+    background-color: var(--bg-sidebar) !important;
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border-right: 1px solid var(--border-color) !important;
     overflow-y: auto;
+    transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
 @media (max-width: 767.98px) {
@@ -25,9 +118,11 @@ body {
     }
 
     #topNavbar.collapse.show {
-        background-color: #fff;
+        background-color: var(--bg-navbar) !important;
+        backdrop-filter: var(--glass-blur);
+        -webkit-backdrop-filter: var(--glass-blur);
         padding: 1rem;
-        border-bottom: 1px solid #dee2e6;
+        border-bottom: 1px solid var(--border-color) !important;
         position: absolute;
         top: 56px;
         left: 0;
@@ -43,19 +138,22 @@ body {
 
 .sidebar .nav-link {
     font-weight: 500;
-    color: #333;
-    padding: 0.5rem 1.5rem;
+    color: var(--text-secondary) !important;
+    padding: 0.6rem 1.5rem;
     border-radius: 0 25px 25px 0;
     margin-right: 10px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .sidebar .nav-link:hover {
-    background-color: #f1f3f4;
+    background-color: var(--accent-bg) !important;
+    color: var(--accent-primary) !important;
 }
 
 .sidebar .nav-link.active {
-    color: #1a73e8;
-    background-color: #e8f0fe;
+    color: var(--accent-primary) !important;
+    background-color: var(--accent-bg) !important;
+    font-weight: 600;
 }
 
 .sidebar .nav-link i {
@@ -65,7 +163,7 @@ body {
 
 .main-content {
     margin-left: 240px;
-    padding: 20px;
+    padding: 24px;
 }
 
 @media (max-width: 767.98px) {
@@ -74,26 +172,117 @@ body {
     }
 }
 
-.navbar-brand {
-    font-weight: 600;
+/* Cards & Modals */
+.card {
+    background-color: var(--bg-card) !important;
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--border-color) !important;
+    box-shadow: var(--shadow-sm) !important;
+    color: var(--text-primary) !important;
+    border-radius: 12px !important;
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    box-shadow: var(--shadow-md) !important;
+}
+
+.modal-content {
+    background-color: var(--bg-card) !important;
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--border-color) !important;
+    box-shadow: var(--shadow-lg) !important;
+    color: var(--text-primary) !important;
+    border-radius: 16px !important;
+}
+
+.modal-header, .modal-footer {
+    border-color: var(--border-color) !important;
+}
+
+/* Custom Lists & Tables */
+.table {
+    color: var(--text-primary) !important;
+}
+
+.table-hover tbody tr:hover {
+    background-color: var(--accent-bg) !important;
+}
+
+.table-light {
+    --bs-table-bg: var(--bg-primary) !important;
+    --bs-table-color: var(--text-primary) !important;
+    border-color: var(--border-color) !important;
 }
 
 .file-item {
     border-radius: 8px;
-    transition: background-color 0.2s;
+    transition: all 0.2s ease;
 }
 
 .file-item:hover {
-    background-color: #f1f3f4;
+    background-color: var(--accent-bg) !important;
+    transform: translateX(4px);
+}
+
+.file-item a {
+    color: var(--text-primary) !important;
+    transition: color 0.2s ease;
+}
+
+.file-item a:hover {
+    color: var(--accent-primary) !important;
+}
+
+/* Dropdowns overrides */
+.dropdown-menu {
+    background-color: var(--bg-card) !important;
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--border-color) !important;
+    box-shadow: var(--shadow-lg) !important;
+    color: var(--text-primary) !important;
+    border-radius: 8px !important;
 }
 
 .dropdown-item {
-    padding: 0.5rem 1.25rem;
+    color: var(--text-primary) !important;
+    padding: 0.6rem 1.25rem;
     font-size: 0.9rem;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.dropdown-item:hover {
+    background-color: var(--accent-bg) !important;
+    color: var(--accent-primary) !important;
 }
 
 .dropdown-item i {
     width: 1.2rem;
+}
+
+/* Modern Form Controls */
+.form-control, .form-select {
+    background-color: var(--bg-card) !important;
+    border: 1px solid var(--border-color) !important;
+    color: var(--text-primary) !important;
+    border-radius: 8px !important;
+    transition: all 0.2s ease;
+}
+
+.form-control:focus, .form-select:focus {
+    background-color: var(--bg-card) !important;
+    border-color: var(--accent-primary) !important;
+    box-shadow: 0 0 0 3px var(--accent-border) !important;
+    color: var(--text-primary) !important;
+}
+
+.input-group-text {
+    background-color: var(--bg-primary) !important;
+    border: 1px solid var(--border-color) !important;
+    color: var(--text-secondary) !important;
 }
 
 /* Touch targets for mobile */
@@ -107,42 +296,18 @@ body {
         padding-bottom: 8px;
     }
 
-    /* Reduce horizontal padding on mobile to maximize content width */
     .main-content {
-        padding: 10px;
+        padding: 12px;
     }
 
     .container-fluid {
-        padding-left: 10px;
-        padding-right: 10px;
+        padding-left: 12px;
+        padding-right: 12px;
     }
 
-    /* Ensure action buttons don't wrap awkwardly */
     .btn-toolbar {
         flex-wrap: nowrap;
     }
-}
-
-.grid-view .file-card {
-    width: 200px;
-    margin: 10px;
-    text-align: center;
-    padding: 15px;
-    border: 1px solid #dee2e6;
-    border-radius: 8px;
-    background-color: #fff;
-}
-
-.grid-view .file-icon {
-    font-size: 3rem;
-    display: block;
-    margin-bottom: 10px;
-}
-
-.file-name {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
 }
 
 .workspace-area {
@@ -165,10 +330,11 @@ body {
 /* Grid View Improvements */
 .grid-item {
     position: relative;
-    border-radius: 8px;
-    overflow: visible !important;
-    transition: transform 0.2s, box-shadow 0.2s;
-    background: #fff;
+    border-radius: 12px !important;
+    overflow: hidden !important;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease, border-color 0.3s ease;
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border-color) !important;
     padding: 0 !important;
 }
 
@@ -180,26 +346,27 @@ body {
     width: 1.25rem !important;
     height: 1.25rem !important;
     cursor: pointer;
-    background-color: white !important;
-    border: 2px solid #adb5bd !important;
+    background-color: var(--bg-card) !important;
+    border: 2px solid var(--border-color) !important;
 }
 
 .grid-selection-checkbox:checked {
-    background-color: #0d6efd !important;
-    border-color: #0d6efd !important;
+    background-color: var(--accent-primary) !important;
+    border-color: var(--accent-primary) !important;
 }
 
 .grid-item:hover, .grid-item:focus-within {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
-    z-index: 50; /* Ensure it stays above other items when hovered or menu is open */
+    transform: translateY(-6px) scale(1.02);
+    box-shadow: var(--shadow-lg) !important;
+    z-index: 50;
+    border-color: var(--accent-primary) !important;
 }
 
 .grid-thumbnail-wrapper {
     position: relative;
     width: 100%;
     padding-top: 100%; /* 1:1 Aspect Ratio */
-    background: #f1f3f4;
+    background: var(--bg-primary) !important;
 }
 
 .grid-thumbnail {
@@ -209,6 +376,11 @@ body {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.grid-item:hover .grid-thumbnail {
+    transform: scale(1.05);
 }
 
 .grid-icon-placeholder {
@@ -219,26 +391,26 @@ body {
 }
 
 .grid-file-info {
-    background: rgba(74, 144, 226, 0.9); /* Modern Blue with slight transparency */
-    color: white;
-    padding: 8px 12px;
+    background: var(--bg-card) !important;
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    color: var(--text-primary) !important;
+    padding: 10px 12px;
     font-size: 0.85rem;
     font-weight: 500;
     position: absolute;
     bottom: 0;
     width: 100%;
     z-index: 10;
-    backdrop-filter: blur(4px);
-    border-top: 1px solid rgba(255,255,255,0.1);
+    border-top: 1px solid var(--border-color) !important;
+}
+
+.grid-file-info a {
+    color: var(--text-primary) !important;
 }
 
 .grid-file-info .dropdown-menu {
     z-index: 1060;
-}
-
-.grid-item .grid-thumbnail-wrapper {
-    overflow: hidden;
-    border-radius: 8px 8px 0 0;
 }
 
 .grid-download-overlay {
@@ -262,16 +434,46 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(255, 255, 255, 0.9);
-    color: #333;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-    border: none;
-    transition: background 0.2s;
+    background: var(--bg-card) !important;
+    color: var(--text-primary) !important;
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--border-color) !important;
+    transition: background 0.2s, color 0.2s, transform 0.2s;
 }
 
 .grid-download-btn:hover {
-    background: #fff;
-    color: #000;
+    background: var(--accent-primary) !important;
+    color: white !important;
+    transform: scale(1.1);
+}
+
+/* Buttons customizations */
+.btn-primary {
+    background-color: var(--accent-primary) !important;
+    border-color: var(--accent-primary) !important;
+    color: white !important;
+    border-radius: 20px !important;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.btn-primary:hover, .btn-primary:focus, .btn-primary:active {
+    background-color: var(--accent-hover) !important;
+    border-color: var(--accent-hover) !important;
+    box-shadow: 0 0 0 3px var(--accent-border) !important;
+}
+
+.btn-outline-secondary {
+    color: var(--text-secondary) !important;
+    border-color: var(--border-color) !important;
+    transition: all 0.2s ease;
+    border-radius: 20px !important;
+}
+
+.btn-outline-secondary:hover {
+    background-color: var(--accent-bg) !important;
+    color: var(--accent-primary) !important;
+    border-color: var(--accent-primary) !important;
 }
 
 /* Fix dropdown clipping in responsive tables */
@@ -286,15 +488,15 @@ body.drag-over::after {
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(26, 115, 232, 0.2);
-    border: 4px dashed #1a73e8;
+    background: rgba(99, 102, 241, 0.15) !important;
+    border: 4px dashed var(--accent-primary) !important;
     z-index: 9999;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 2rem;
     font-weight: bold;
-    color: #1a73e8;
+    color: var(--accent-primary) !important;
     pointer-events: none;
 }
 
@@ -305,3 +507,66 @@ body.drag-over::after {
         -webkit-overflow-scrolling: touch;
     }
 }
+
+/* Explicit text-muted & form-text overrides */
+.text-muted, .text-secondary, .form-text {
+    color: var(--text-secondary) !important;
+    --bs-text-opacity: 1 !important;
+}
+
+/* Fix bg-white and bg-light overrides in dark mode */
+@media (prefers-color-scheme: dark) {
+    .bg-white {
+        background-color: var(--bg-card) !important;
+        color: var(--text-primary) !important;
+    }
+    .bg-light {
+        background-color: var(--bg-primary) !important;
+        color: var(--text-primary) !important;
+    }
+    .text-dark {
+        color: var(--text-primary) !important;
+    }
+    .card-header.bg-white {
+        background-color: transparent !important;
+        border-bottom: 1px solid var(--border-color) !important;
+    }
+}
+
+/* Explicit style overrides for file inputs and switch checkboxes */
+.form-control::file-selector-button {
+    background-color: var(--bg-primary) !important;
+    color: var(--text-primary) !important;
+    border: none;
+    border-right: 1px solid var(--border-color) !important;
+    padding: 0.375rem 0.75rem;
+    margin-top: -0.375rem;
+    margin-bottom: -0.375rem;
+    margin-left: -0.75rem;
+    margin-right: 0.75rem;
+    transition: background-color 0.2s ease;
+}
+
+.form-control::file-selector-button:hover {
+    background-color: var(--accent-bg) !important;
+    color: var(--accent-primary) !important;
+}
+
+.form-check-input {
+    background-color: var(--bg-primary) !important;
+    border: 1.5px solid var(--text-secondary) !important;
+    border-color: var(--text-secondary) !important;
+    transition: background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.form-check-input:checked {
+    background-color: var(--accent-primary) !important;
+    border-color: var(--accent-primary) !important;
+}
+
+.form-check-input:focus {
+    border-color: var(--accent-primary) !important;
+    box-shadow: 0 0 0 3px var(--accent-border) !important;
+}
+
+

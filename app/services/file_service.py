@@ -283,6 +283,9 @@ class FileService:
         if date_to:
             filters.append(File.created_at <= date_to)
 
+        if owner_username:
+            filters.append(File.owner.has(db.func.lower(User.username) == owner_username.lower()))
+
         # Base query for files owned by user
         owned_query = File.query.filter(File.owner_id == user.id, *filters)
 
@@ -311,34 +314,25 @@ class FileService:
         all_accessible_file_ids = set(shared_file_ids) | set(inherited_file_ids)
         shared_query = File.query.filter(File.id.in_(all_accessible_file_ids), *filters)
 
-        all_files = owned_query.union(shared_query).all()
+        union_query = owned_query.union(shared_query)
 
-        # Remove duplicates from union
-        unique_files = list({f.id: f for f in all_files}.values())
-
-        # Filter for owner_username if provided
-        if owner_username:
-            unique_files = [f for f in unique_files if f.owner.username.lower() == owner_username.lower()]
-
-        # Ranking: Filename matches above content matches
-        # TODO: Move ranking and pagination into SQL for large result sets.
-        # Currently we load all items into Python memory.
+        # Ranking and Ordering
         if query:
-            q_lower = query.lower()
-            def rank_key(f):
-                # Lower score is better (higher rank)
-                if q_lower in f.original_filename.lower():
-                    return 0
-                return 1
-            unique_files.sort(key=rank_key)
+            from sqlalchemy import case
+            q_lower = f"%{query.lower()}%"
+            # Lower score is better (higher rank)
+            union_query = union_query.order_by(
+                case((File.original_filename.ilike(q_lower), 0), else_=1),
+                File.created_at.desc()
+            )
+        else:
+            union_query = union_query.order_by(File.created_at.desc())
 
         # Pagination
         if page:
-            start = (page - 1) * per_page
-            end = start + per_page
-            return unique_files[start:end]
+            union_query = union_query.limit(per_page).offset((page - 1) * per_page)
 
-        return unique_files
+        return union_query.all()
 
     @staticmethod
     def get_recent_files(user, limit=50):

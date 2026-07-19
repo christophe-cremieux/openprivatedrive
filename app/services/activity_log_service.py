@@ -106,30 +106,45 @@ class ActivityLogService:
 
     @staticmethod
     def get_all_users_with_stats():
-        """Retrieves all users with their storage usage stats."""
+        """Retrieves all users with their storage usage stats in a single optimized query."""
         from app.models.api_token import ApiToken
-        users = User.query.all()
+
+        # Subquery for storage usage grouped by owner
+        usage_sub = db.session.query(
+            File.owner_id,
+            func.sum(File.size_bytes).label('usage')
+        ).filter(File.is_deleted == False).group_by(File.owner_id).subquery()
+
+        # Subquery for token counts grouped by user
+        token_sub = db.session.query(
+            ApiToken.user_id,
+            func.count(ApiToken.id).label('token_count')
+        ).filter(
+            ApiToken.revoked_at == None,
+            ApiToken.token_type == 'refresh'
+        ).group_by(ApiToken.user_id).subquery()
+
+        # Join User with subqueries
+        users_with_stats = db.session.query(
+            User,
+            usage_sub.c.usage,
+            token_sub.c.token_count
+        ).outerjoin(
+            usage_sub, User.id == usage_sub.c.owner_id
+        ).outerjoin(
+            token_sub, User.id == token_sub.c.user_id
+        ).all()
+
         results = []
-        for user in users:
-            # Calculate current storage usage
-            usage = db.session.query(func.sum(File.size_bytes)).filter(
-                File.owner_id == user.id,
-                File.is_deleted == False
-            ).scalar() or 0
-
-            # Count active API tokens
-            token_count = ApiToken.query.filter_by(
-                user_id=user.id,
-                revoked_at=None,
-                token_type='refresh'
-            ).count()
-
+        for user, usage, token_count in users_with_stats:
+            usage_val = usage or 0
+            token_count_val = token_count or 0
             results.append({
                 'user': user,
-                'storage_usage_bytes': usage,
+                'storage_usage_bytes': usage_val,
                 'storage_quota_bytes': user.storage_quota_bytes,
-                'usage_percent': (usage / user.storage_quota_bytes * 100) if user.storage_quota_bytes > 0 else 0,
-                'active_tokens': token_count
+                'usage_percent': (usage_val / user.storage_quota_bytes * 100) if user.storage_quota_bytes > 0 else 0,
+                'active_tokens': token_count_val
             })
         return results
 

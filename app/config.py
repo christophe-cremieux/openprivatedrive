@@ -23,6 +23,7 @@ class Config:
     SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL") or \
         "sqlite:///" + str(basedir / "instance" / "app.db")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    SEND_FILE_MAX_AGE_DEFAULT = int(os.environ.get("SEND_FILE_MAX_AGE_DEFAULT", 31536000))
 
     STORAGE_PATH = os.environ.get("STORAGE_PATH") or str(basedir / "storage")
     LOG_FILE_PATH = os.environ.get("LOG_FILE_PATH")
